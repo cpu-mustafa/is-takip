@@ -1,0 +1,14 @@
+# Claude Code yerel ayarları
+.claude/
+
+# İşletim sistemi
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editör
+.vscode/
+.idea/
+
+# Bağımlılıklar (ileride eklenirse)
+node_modules/

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>İş Takibi</title>
+  <script>
+    // İlk boyamadan önce temayı uygula (varsayılan: koyu) — beyaz parlamayı önler
+    (function () {
+      try {
+        var t = localStorage.getItem("istakip.theme") || "dark";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d9488' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m9 11 3 3L22 4'/><path d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/></svg>" />
+</head>
+<body>
+  <div class="bg-layer" aria-hidden="true">
+    <div class="bg-orb bg-orb-a"></div>
+    <div class="bg-orb bg-orb-b"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div class="wrap">
+    <!-- ===== Header ===== -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </span>
+        <div class="brand-txt">
+          <h1>İş Takibi</h1>
+          <p class="brand-sub">Kişisel görev panosu · Google Takvim senkronu</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="stat" id="statToday" title="Bugün teslim edilecek işler">
+          <svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+          <span class="stat-body"><span class="stat-num" id="todayCount">0</span><span class="stat-label">Bugün</span></span>
+        </div>
+        <div class="stat stat-danger" id="statOverdue" title="Süresi geçmiş işler">
+          <svg class="stat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <span class="stat-body"><span class="stat-num" id="overdueCount">0</span><span class="stat-label">Geciken</span></span>
+        </div>
+        <button id="themeBtn" class="btn btn-google theme-btn" type="button" title="Açık / koyu tema" aria-label="Temayı değiştir">
+          <svg class="ico theme-ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="ico theme-ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
+        <button id="googleBtn" class="btn btn-google" type="button">
+          <span class="g-dot" aria-hidden="true"></span>
+          <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span id="googleBtnText">Google Takvim'e bağlan</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Hızlı ekleme ===== -->
+    <form id="taskForm" class="task-form" autocomplete="off" novalidate>
+      <div class="form-row-main">
+        <div class="field field-grow">
+          <input id="title" name="title" type="text" placeholder="Ne yapılacak? (örn. Rapor teslimi)" required />
+        </div>
+        <div class="field field-date">
+          <input id="dueDate" name="dueDate" type="datetime-local" aria-label="Teslim tarihi ve saati" min="2000-01-01T00:00" max="2100-12-31T23:59" />
+        </div>
+      </div>
+
+      <div class="field field-full">
+        <textarea id="description" name="description" rows="1" placeholder="Açıklama (opsiyonel)…"></textarea>
+      </div>
+
+      <div class="form-row-controls">
+        <fieldset class="segmented" aria-label="Öncelik">
+          <input type="radio" id="p-low" name="priority" value="low" />
+          <label for="p-low" class="seg seg-low"><span class="seg-dot"></span>Düşük</label>
+          <input type="radio" id="p-med" name="priority" value="medium" checked />
+          <label for="p-med" class="seg seg-med"><span class="seg-dot"></span>Orta</label>
+          <input type="radio" id="p-urg" name="priority" value="urgent" />
+          <label for="p-urg" class="seg seg-urg"><span class="seg-dot"></span>Acil</label>
+        </fieldset>
+
+        <label class="switch" title="Google Takvim'e otomatik etkinlik ekle">
+          <input id="autoSync" type="checkbox" checked />
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          <span class="switch-label">Takvime ekle</span>
+        </label>
+
+        <div class="form-actions">
+          <button class="btn btn-ghost" type="button" id="cancelEdit" hidden>Vazgeç</button>
+          <button class="btn btn-primary" type="submit" id="submitBtn">
+            <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="submitLabel">Ekle</span>
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- ===== Kanban ===== -->
+    <main class="board" id="board">
+      <section class="column" data-status="todo">
+        <div class="col-head">
+          <span class="col-dot dot-todo" aria-hidden="true"></span>
+          <span class="col-name">Yapılacaklar</span>
+          <span class="col-count" data-count="todo">0</span>
+        </div>
+        <div class="dropzone" data-status="todo" id="col-todo"></div>
+      </section>
+      <section class="column" data-status="doing">
+        <div class="col-head">
+          <span class="col-dot dot-doing" aria-hidden="true"></span>
+          <span class="col-name">Devam Edenler</span>
+          <span class="col-count" data-count="doing">0</span>
+        </div>
+        <div class="dropzone" data-status="doing" id="col-doing"></div>
+      </section>
+      <section class="column" data-status="done">
+        <div class="col-head">
+          <span class="col-dot dot-done" aria-hidden="true"></span>
+          <span class="col-name">Tamamlananlar</span>
+          <span class="col-count" data-count="done">0</span>
+        </div>
+        <div class="dropzone" data-status="done" id="col-done"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Veriler yalnızca bu tarayıcıda (LocalStorage) saklanır.</span>
+      <button id="exportBtn" class="linklike" type="button">
+        <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Yedek al (JSON)
+      </button>
+    </footer>
+  </div>
+
+  <!-- ===== Kart şablonu ===== -->
+  <template id="cardTpl">
+    <article class="card" tabindex="0">
+      <div class="card-top">
+        <span class="badge"></span>
+        <div class="card-menu">
+          <button class="icon-btn cal" title="Google Takvim'e ekle" aria-label="Takvime ekle">
+            <svg class="ico ico-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <svg class="ico ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.8 10A10 10 0 1 1 17 3.34"/><path d="m9 11 3 3L22 4"/></svg>
+          </button>
+          <button class="icon-btn edit" title="Düzenle" aria-label="Düzenle">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <button class="icon-btn del" title="Sil" aria-label="Sil">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>
+      <h3 class="card-title"></h3>
+      <p class="card-desc"></p>
+      <div class="card-foot">
+        <span class="due">
+          <svg class="due-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span class="due-text"></span>
+        </span>
+        <div class="move">
+          <button class="move-btn back" title="Geri al" aria-label="Önceki aşama">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button class="move-btn fwd" title="İlerlet" aria-label="Sonraki aşama">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="config.js"></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="app.js"></script>
+</body>
+</html>
