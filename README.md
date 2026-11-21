@@ -1,5 +1,9 @@
 # ✅ İş Takibi — Kişisel Görev Panosu + Google Takvim
 
+**Canlı demo:** https://cpu-mustafa.github.io/is-takip/
+
+![İş Takibi ekran görüntüsü](ekran/pano.png)
+
 Tek kullanıcı için, kayıt/giriş gerektirmeyen, tarayıcıda çalışan bir görev panosu.
 Kanban görünümü (Yapılacaklar / Devam Edenler / Tamamlananlar), öncelik, teslim
 tarihi ve **Google Takvim senkronu** içerir. Veriler yalnızca senin tarayıcında
